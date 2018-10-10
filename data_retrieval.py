@@ -1,7 +1,9 @@
 import requests
 import json
 import re
+import os
 import time
+import tarfile
 
 
 def retrieve_data():
@@ -37,6 +39,13 @@ def retrieve_data():
                     "field": "files.analysis.workflow_type",
                     "value": ["HTSeq - FPKM-UQ"]
                 }
+            },
+            {
+                "op": "in",
+                "content": {
+                    "field": "cases.demographic.gender",
+                    "value": ["male"]
+                }
             }
         ]
     }
@@ -47,7 +56,7 @@ def retrieve_data():
         "filters": json.dumps(filters),
         "fields": "file_id",
         "format": "JSON",
-        "size": "2000"
+        "size": "2000"  # arbitrary value
     }
 
     response = requests.get(files_endpt, params=params)
@@ -72,10 +81,21 @@ def retrieve_data():
 
     file_name = re.findall("filename=(.+)", response_head_cd)[0]
 
+    file_name = "./data_folder/"+file_name
+    os.makedirs(os.path.dirname(file_name), exist_ok=True)
     with open(file_name, "wb") as output_file:
         output_file.write(response.content)
         print("Filename: {}".format(file_name))
-        time.sleep(5)
+
+    extract_tar_gz(file_name)
+
+def extract_tar_gz(archive_name):
+    with tarfile.open(archive_name, "r") as ap:
+        # ap is the archive pointer
+        for element in ap.getmembers():
+            if element.isdir():
+                print("I'm a dir")
+            ap.next()
 
 
 def test_esempio():
