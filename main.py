@@ -1,9 +1,10 @@
 import data_retrieval
 
 
-print("Testing out this function...")
+def main_menu():
+    print("Welcome to the program.\nThe system is now checking if there are samples already saved locally...\n")
+    data_retrieval.check_local_files()
+    print("That's all for now!! Thank you")
 
-data_retrieval.retrieve_data()
-#data_retrieval.test_esempio()
 
-print("Did it work? Hope so..")
+main_menu()
