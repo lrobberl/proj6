@@ -48,13 +48,13 @@ def get_uuid_list():
                     "value": ["HTSeq - FPKM-UQ"]
                 }
             },
-            {
-                "op": "in",
-                "content": {
-                    "field": "cases.demographic.gender",
-                    "value": ["male"]
-                }
-            }
+            # {
+            #     "op": "in",
+            #     "content": {
+            #         "field": "cases.demographic.gender",
+            #         "value": ["male"]
+            #     }
+            # }
         ]
     }
 
