@@ -27,13 +27,6 @@ def get_uuid_list():
                     "value": ["Breast"]
                 }
             },
-            # {
-            #     "op": "in",
-            #     "content": {
-            #         "field": "cases.project.program.name",
-            #         "value": ["TCGA"]
-            #     }
-            # },
             {
                 "op": "in",
                 "content": {
@@ -48,13 +41,20 @@ def get_uuid_list():
                     "value": ["HTSeq - FPKM-UQ"]
                 }
             },
-            # {
-            #     "op": "in",
-            #     "content": {
-            #         "field": "cases.demographic.gender",
-            #         "value": ["male"]
-            #     }
-            # }
+            {
+                "op": "in",
+                "content": {
+                    "field": "files.cases.samples.sample_type",
+                    "value": ["Primary Tumor"]
+                }
+            },
+            {
+                "op": "in",
+                "content": {
+                    "field": "cases.demographic.gender",
+                    "value": ["male"]
+                }
+            }
         ]
     }
 
@@ -62,22 +62,29 @@ def get_uuid_list():
     params = {
         "filters": json.dumps(filters),
         "fields": "file_id",
+        "fields": "associated_entities.entity_submitter_id",
         "format": "JSON",
         "size": "2000"  # arbitrary value
     }
+
+    # "fields": "associated_entities.entity_submitter_id"
     response = requests.get(files_endpt, params=params)
 
     # This step populates the download list with the file_ids from the previous query
-    file_uuid_list = []
+    uuid_tgcaName = {}  # dictionary : {'uuid': Name of the tcga patient}
     for file_entry in json.loads(response.content.decode("utf-8"))["data"]["hits"]:
-        file_uuid_list.append(file_entry["file_id"])
+        # take the first 12 chars of the entity_submitter_id. The [0] is because we have "associated_entities" that can have multiple values inside of it (entity_id, etc...)
+        tgca_name = file_entry["associated_entities"][0]["entity_submitter_id"][:12]
+        file_uuid = file_entry["id"]
+        uuid_tgcaName[file_uuid] = tgca_name
 
-    return file_uuid_list
+    return uuid_tgcaName
 
 
-def get_files_from_uuid_list(uuid_list):
+def get_files_from_uuid_list(uuid_tgcaName):
     data_endpt = "https://api.gdc.cancer.gov/data"
-    params = {"ids": uuid_list}
+    uuids = list(uuid_tgcaName.keys())  # retrieve only the uuids that I will download
+    params = {"ids": uuids}
     response = requests.post(data_endpt, data=json.dumps(params), headers={"Content-Type": "application/json"})
     response_head_cd = response.headers["Content-Disposition"]
     file_name = re.findall("filename=(.+)", response_head_cd)[0]
@@ -91,10 +98,10 @@ def get_files_from_uuid_list(uuid_list):
         output_file.write(response.content)
         print("Filename: {}".format(file_name))
 
-    extract_tar_gz(file_name, data_folder)
+    extract_tar_gz(file_name, data_folder, uuid_tgcaName)
 
 
-def extract_tar_gz(archive_name, data_folder):
+def extract_tar_gz(archive_name, data_folder, uuid_tgcaName):
     with tarfile.open(archive_name, "r") as ap:
         # ap is the archive pointer. For each directory encountered extract it and analyze it
         for element in ap.getmembers():
@@ -103,7 +110,9 @@ def extract_tar_gz(archive_name, data_folder):
                 ap.extract(element.name, data_folder)
                 file_gz_path = os.path.join(data_folder, os.path.join(element.name.split("/")[0], element.name.split("/")[1]))
                 # open and extract the last archive, that contains only the txt file we're interested in
-                file_txt_path = os.path.join(data_folder, os.path.basename(file_gz_path)).split(".gz")[0]
+                uuid_file = element.name.split("/")[0]
+                # name of the output file that will contain the genome of that specific TCGA patient
+                file_txt_path = os.path.join(data_folder, uuid_tgcaName[uuid_file])
                 try:
                     # extact the .gz file using the gzip library, opening two fp and copying the content of the 1st into the 2nd
                     with gzip.open(file_gz_path, 'rb') as f_in, open(file_txt_path, 'wb') as f_out:
