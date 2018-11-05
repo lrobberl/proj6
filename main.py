@@ -9,4 +9,5 @@ def main_menu():
 
 
 main_menu()
-fu.get_data_from_files()
+gene_data, ens_gene_list, y, label_mapping = fu.get_data_from_files()
+print("Hello")
