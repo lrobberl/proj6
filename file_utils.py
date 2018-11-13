@@ -12,19 +12,21 @@ def get_data_from_files():
     M = []
     y = []
     # "y" is the list containing the labels of the matrix of the data
-    label_mapping = {} # ["Luminal A"] = 0, ["Luminal B"] = 1, etc...
-    id_label = build_associative_array_caseID_label()
+    #label_mapping = }{ # ["Luminal A"] = 0, ["Luminal B"] = 1, etc...
+    label_mapping = []  # list: [0] = "Luminal A", [1] = "Luminal B", etc...
+    id_label = build_associative_array_caseID_label()   # dictionary: {"TCGA-AAAA": "Luminal A"}
     i = 0
     label_counter = 0
     for filename in os.listdir(data_folder):
         # check if the data we are analyzing is labeled, if not, skip it
         if filename in id_label.keys():
             # check if we already encoutered a certain label: if not, add it to the collection of labels
-            if id_label[filename] not in label_mapping.keys():
-                label_mapping[id_label[filename]] = label_counter
+            if id_label[filename] not in label_mapping:
+                #label_mapping[id_label[filename]] = label_counter
+                label_mapping.append(id_label[filename])
                 label_counter += 1
             # add the label of the i-th element inside the Y list, containing all the labels of each sample
-            y.append(label_mapping[id_label[filename]])
+            y.append(label_mapping.index(id_label[filename]))
             filename = os.path.join(data_folder, filename)
             with open(filename, "r") as fp:
                 j = 0

@@ -47,14 +47,14 @@ def get_uuid_list():
                     "field": "files.cases.samples.sample_type",
                     "value": ["Primary Tumor"]
                 }
-            },
-            {
-                "op": "in",
-                "content": {
-                    "field": "cases.demographic.gender",
-                    "value": ["male"]
-                }
             }
+            # {
+            #     "op": "in",
+            #     "content": {
+            #         "field": "cases.demographic.gender",
+            #         "value": ["male"]
+            #     }
+            # }
         ]
     }
 
