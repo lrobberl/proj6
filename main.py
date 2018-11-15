@@ -12,12 +12,18 @@ from sklearn.model_selection import train_test_split
 from collections import Counter, OrderedDict
 from sklearn.cluster import KMeans
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn.model_selection import KFold
+from sklearn.model_selection import cross_val_score
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import accuracy_score
 
 
 def sample_balancer(X, Y, method):
     sm = method
-    X, Y = sm.fit_resample(X, Y)
-    return X, Y
+    X_res, Y_res = sm.fit_resample(X, Y)
+    return X_res, Y_res
 
 
 def plot_histogram(Y, tt):
@@ -54,11 +60,35 @@ gene_data, ens_gene_list, y, label_mapping = fu.get_data_from_files()
 pca = PCA(n_components=4)
 X_t = pca.fit_transform(gene_data)
 
-ax = Axes3D(plt.figure())
-ax.scatter(X_t[:, 0], X_t[:, 1], X_t[:, 2], c=y)
+# ax = Axes3D(plt.figure())
+# ax.scatter(X_t[:, 0], X_t[:, 1], X_t[:, 2], c=y)
 
 # plt.figure()
 # plt.plot(pca.explained_variance)
+
+kf = KFold(n_splits=5)
+
+classifier_names = ['Decision Tree Classifier', 'Gaussian Naive Bayes']
+clfs = [DecisionTreeClassifier(), GaussianNB()]
+sample_balancers = ['ADASYN (over)', 'SMOTETomek (over+under)', 'TomekLinks (under)']
+blnc = [ADASYN(), SMOTETomek(), TomekLinks()]
+split_index = 0
+
+for train_index, test_index in kf.split(X_t):
+    X_train, X_test = X_t[train_index], X_t[test_index]
+    Y_train = y[min(train_index): max(train_index)]
+    Y_test = y[min(test_index): max(test_index)]
+
+    for balancer, balancer_name in zip(blnc, sample_balancers):
+        X_train_t, Y_train_t = sample_balancer(X_train, Y_train, balancer)
+        for classifier_name, clf in zip(classifier_names, clfs):
+            clf.fit(X_train, Y_train)
+            Y_predicted = clf.predict(X_test)
+            print("MODEL: {}\nBALANCING METHOD: {}\nSPLIT N: {}".format(classifier_name, balancer_name, split_index))
+            print(precision_recall_fscore_support(Y_test, Y_predicted))
+            print("ACCURACY: {}".format(accuracy_score(Y_test, Y_predicted)))
+
+    split_index += 1
 
 # dealing with classes imbalances: over and under sampling
 X_train, X_test, Y_train, Y_test = train_test_split(X_t, y, test_size=0.2)
